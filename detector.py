@@ -13,6 +13,7 @@ import json
 from pathlib import Path
 
 import pandas as pd
+from sklearn.ensemble import IsolationForest
 
 DATA_DIR = Path(__file__).parent / "data"
 CSV_PATH = DATA_DIR / "machine_temperature_system_failure.csv"
@@ -23,6 +24,7 @@ READINGS_PER_HOUR = 12  # one reading every 5 minutes
 
 DEFAULT_WINDOW = 24 * READINGS_PER_HOUR  # 24 hours of past readings
 DEFAULT_THRESHOLD = 4.0
+DEFAULT_CONTAMINATION = 0.01  # flag the strangest 1% of readings
 WARNING_LOOKBACK_HOURS = 48  # how far before the failure a flag counts as a warning
 
 
@@ -69,6 +71,54 @@ def zscore_detector(df, window=DEFAULT_WINDOW, threshold=DEFAULT_THRESHOLD):
     # The first `window` rows have no baseline yet, so z is NaN there. NaN > threshold
     # is False, so those rows are never flagged.
     return z.abs() > threshold
+
+
+def make_features(df, window=DEFAULT_WINDOW):
+    """Build the table of numbers Isolation Forest looks at, one row per reading.
+
+    value: the reading itself.
+    rolling_mean / rolling_std: the average and spread of the past `window` readings.
+    diff: the change since the previous reading, which shows sudden jumps.
+
+    These only look backward, so they could be calculated on a live stream.
+    The first `window` rows have no baseline yet, so they contain NaN.
+    """
+    past_values = df["value"].shift(1).rolling(window)
+    return pd.DataFrame(
+        {
+            "value": df["value"],
+            "rolling_mean": past_values.mean(),
+            "rolling_std": past_values.std(),
+            "diff": df["value"].diff(),
+        }
+    )
+
+
+def isolation_forest_detector(df, contamination=DEFAULT_CONTAMINATION, window=DEFAULT_WINDOW):
+    """Flag the readings that are easiest to separate from the rest.
+
+    contamination: the share of readings to flag, so 0.01 always flags about 1%.
+    window: how many past readings the rolling features use.
+
+    Isolation Forest is unsupervised: it never sees the labels; labels are only
+    used to evaluate. It builds random trees that keep splitting the data, and
+    unusual readings end up on their own after only a few splits.
+
+    One limit: we train on the whole file, so the model has seen the future. The
+    features could run on a live stream, but this training setup could not. A real
+    system would train on past data only.
+    """
+    # IsolationForest can't handle NaN, so leave out the rows with no baseline yet.
+    features = make_features(df, window).dropna()
+
+    # random_state makes the random trees the same on every run.
+    model = IsolationForest(contamination=contamination, random_state=42)
+    predictions = model.fit_predict(features)  # -1 means anomaly, 1 means normal
+
+    # Rows we left out stay False, the same as in the z-score detector.
+    flags = pd.Series(False, index=df.index)
+    flags.loc[features.index] = predictions == -1
+    return flags
 
 
 def evaluate(df, flags):
@@ -169,4 +219,10 @@ if __name__ == "__main__":
         f"Z-score detector: window={DEFAULT_WINDOW} readings (24 h), threshold={DEFAULT_THRESHOLD}",
         data,
         zscore_detector(data),
+    )
+    print()
+    print_report(
+        f"Isolation Forest: window={DEFAULT_WINDOW} readings (24 h), contamination={DEFAULT_CONTAMINATION}",
+        data,
+        isolation_forest_detector(data),
     )
