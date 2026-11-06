@@ -1,0 +1,12 @@
+# Virtual environment (rebuilt from requirements.txt, never committed)
+.venv/
+
+# Python cache files
+__pycache__/
+*.pyc
+
+# Local Streamlit settings
+.streamlit/secrets.toml
+
+# Note: data/ is NOT ignored on purpose. Streamlit Community Cloud only sees
+# what is in the GitHub repo, so the app needs the CSV and labels committed.
