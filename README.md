@@ -4,9 +4,9 @@ A web app that looks for warning signs of a machine failure in real industrial t
 
 I built this as a learning project to practice deploying a machine learning app.
 
-**Live app:** _link coming soon_
+**Live app:** https://sensor-anomaly-detector-j48h2f.streamlit.app/
 
-**Screenshot:** _coming soon_
+![The app showing the temperature line, shaded anomaly windows, and flagged readings in red](screenshot.png)
 
 ## What it does
 
@@ -20,7 +20,7 @@ I built this as a learning project to practice deploying a machine learning app.
 You need Python 3.13.
 
 ```
-git clone <repo-url>
+git clone https://github.com/Kerem-Oncer/sensor-anomaly-detector.git
 cd sensor-anomaly-detector
 python -m venv .venv
 .venv\Scripts\activate
