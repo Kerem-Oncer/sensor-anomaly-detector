@@ -21,7 +21,7 @@ NAB (Numenta Anomaly Benchmark), realKnownCause/machine_temperature_system_failu
 - Data URL: https://raw.githubusercontent.com/numenta/NAB/master/data/realKnownCause/machine_temperature_system_failure.csv
 - Label windows: https://raw.githubusercontent.com/numenta/NAB/master/labels/combined_windows.json
   (use the "realKnownCause/machine_temperature_system_failure.csv" key)
-- Save both into `data/`. NAB is AGPL-3.0; credit it in the README.
+- Save both into `data/`. NAB is MIT-licensed (it moved from AGPL-3.0 in Dec 2024); credit it in the README and keep `data/LICENSE-NAB.txt`.
 
 ## Approach
 1. `detector.py`: pure functions, no Streamlit code.
